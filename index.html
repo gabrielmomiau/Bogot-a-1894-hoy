@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Luz nocturna en 1894</title>
+    <style>
+      html, body { margin: 0; background: #000; }
+      body { visibility: hidden; }
+      body.app-ready { visibility: visible; }
+    </style>
+  </head>
+  <body>
+    <main class="narrative-sequence" aria-label="Introducción narrativa y experiencia del mapa">
+      <section class="narrative-panel narrative-panel--title" aria-label="Pantalla narrativa 1">
+        <img class="narrative-image" src="/assets/Imágenes/web/s1/Bogotá nocturno.webp" alt="Ilustración nocturna histórica de Bogotá" draggable="false" hidden />
+        <img class="narrative-image" src="/assets/Imágenes/web/s1/Clavijo.webp" alt="Imagen histórica de Clavijo" draggable="false" hidden />
+        <img class="narrative-image" src="/assets/Imágenes/web/s1/Lámina 1.webp" alt="Lámina histórica 1" draggable="false" hidden />
+        <img class="narrative-image" src="/assets/Imágenes/web/s1/Clavijo 1891.webp" alt="Mapa histórico de Clavijo 1891" draggable="false" hidden />
+        <div class="narrative-panel__inner">
+          <p class="intro-kicker">Cartografía histórica • Biblioteca Nacional de Colombia</p>
+          <h2>Misma ciudad,<br />otras lecturas.</h2>
+        </div>
+      </section>
+
+      <section class="narrative-panel narrative-panel--context" aria-label="Pantalla narrativa 2">
+        <div class="narrative-panel__inner narrative-panel__inner--editorial">
+          <div class="context-message-stack" id="context-message-stack" aria-label="Tres preguntas que estructuran la investigación">
+            <button type="button" class="context-question" data-narrative="lighting" data-ticker-color="#907954">¿Cómo ha anochecido antes, en otros tiempos, en Bogotá?</button>
+            <button type="button" class="context-question" data-narrative="chicherias" data-ticker-color="#54657c">¿Qué nos dice un mapa de 1894 hoy?</button>
+            <button type="button" class="context-question" data-narrative="heritage" data-ticker-color="#b25c40">¿Dónde ha pasado la noche nuestro patrimonio?</button>
+            <button type="button" class="context-more-info" id="more-info-trigger">Más sobre este proyecto</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="narrative-panel narrative-panel--bibliographic" id="bibliographic-slide" aria-label="Ficha de experiencia" hidden>
+        <button type="button" class="bibliographic-back" id="bibliographic-back" aria-label="Regresar a las preguntas">←</button>
+        <article class="bibliographic-file" id="bibliographic-file" aria-label="Ficha de biblioteca interactiva">
+          <div class="bibliographic-envelope" aria-hidden="true">
+            <p class="bibliographic-envelope__caption">Biblioteca Nacional de Colombia · Museo de Bogotá<br />Bogotá - 2026</p>
+            <div class="bibliographic-envelope__pocket"></div>
+          </div>
+          <div class="bibliographic-card" id="bibliographic-card">
+            <div class="bibliographic-card__preview" id="bibliographic-card-preview" role="button" tabindex="0" aria-label="Extraer o guardar el fichero de biblioteca" aria-expanded="false">
+              <span class="bibliographic-card__label">Fichero</span>
+              <h1 class="bibliographic-card__title" id="bibliographic-title"></h1>
+              <p class="bibliographic-card__description" id="bibliographic-description"></p>
+            </div>
+            <button type="button" class="bibliographic-map-button" id="bibliographic-map-button" aria-hidden="true" inert>Ir al mapa</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="experience-panel" aria-label="Mapa interactivo" hidden>
+        <main class="experience" aria-label="Mapa histórico de Bogotá de 1894">
+          <div class="experience-nav" aria-label="Navegación de la experiencia">
+            <button type="button" class="experience-back" id="experience-back" aria-label="Regresar a las preguntas">←</button>
+            <p class="experience-kicker" id="experience-kicker"></p>
+          </div>
+          <div class="folder" id="folder" data-mode="timeline">
+          <div class="folder-tabs" role="tablist" aria-label="Modos de lectura del mapa">
+            <button type="button" class="folder-tab is-active" id="tab-timeline" role="tab" aria-selected="true" data-mode="timeline">Línea de años</button>
+            <button type="button" class="folder-tab" id="tab-hourly" role="tab" aria-selected="false" data-mode="hourly">Línea de horas</button>
+            <button type="button" class="folder-tab" id="tab-map" role="tab" aria-selected="false" data-mode="map" hidden>Mapa</button>
+            <button type="button" class="folder-tab" id="tab-context" role="tab" aria-selected="false" data-mode="context">Contexto</button>
+          </div>
+          <div class="folder-body">
+          <div class="map-shell" id="map-shell">
+            <section class="map-stage" aria-label="Mapa y locaciones históricas">
+              <div class="map-viewport" id="map-viewport">
+                <div class="map-canvas" id="map-canvas">
+                  <object class="map-background map-day" type="image/svg+xml" role="img" aria-label="Mapa histórico de Bogotá de 1894 durante el día" tabindex="-1"></object>
+                  <object class="map-background map-night" id="map-night" type="image/svg+xml" aria-hidden="true" tabindex="-1"></object>
+                  <div class="locations" id="locations"></div>
+                  <img class="walker" id="walker" alt="" hidden draggable="false" />
+                </div>
+              </div>
+
+              <div class="map-controls" aria-label="Controles del mapa">
+                <button type="button" id="zoom-in" aria-label="Acercar mapa">+</button>
+                <button type="button" id="zoom-out" aria-label="Alejar mapa">−</button>
+                <button type="button" id="reset-view" aria-label="Restablecer vista">↺</button>
+              </div>
+            </section>
+
+            <aside class="instrument-panel is-open" id="instrument-panel" aria-label="Instrumentos del mapa" aria-expanded="true">
+              <button class="instrument-toggle" id="instrument-toggle" type="button" aria-label="Cerrar instrumentos del mapa" aria-expanded="true">
+                <span class="instrument-toggle__symbol">☰</span>
+              </button>
+
+              <div class="instrument-panel__content">
+                <section class="instrument-section" id="clock-section" aria-label="Reloj histórico simulado">
+                  <p class="instrument-label" id="clock-label">Recorrer los años</p>
+                  <div class="instrument-clock">
+                      <div class="timeline-labels" aria-hidden="true"><span id="timeline-label-start">1889</span><span id="timeline-label-end">1896</span></div>
+                      <input id="time-slider" type="range" min="0" max="809" step="1" value="0" aria-label="Explorar años de 1889 a 1896" />
+                    <time id="simulated-time" datetime="1889">1889</time>
+                    <div class="clock-controls" aria-label="Controles de reproducción">
+                      <button type="button" id="clock-play" aria-label="Reproducir">▶ Reproducir</button>
+                      <button type="button" id="clock-pause" aria-label="Pausar">❚❚ Pausar</button>
+                      <button type="button" id="clock-reset" aria-label="Reiniciar">↺ Reiniciar</button>
+                    </div>
+                    <fieldset class="lighting-options">
+                      <legend class="visually-hidden">Alumbrado visible en el mapa</legend>
+                      <label class="lighting-option"><input type="checkbox" id="lighting-general" checked /><span>Alumbrado general</span></label>
+                      <label class="lighting-option"><input type="checkbox" id="lighting-venues" /><span>Alumbrado entre sedes históricas de Biblioteca Nacional de Colombia y Museo de Bogotá</span></label>
+                    </fieldset>
+                  </div>
+                </section>
+
+                <section class="instrument-section" id="chicha-game" aria-label="Cómo jugar" hidden>
+                  <p class="instrument-label">Atrapa las chicherías</p>
+                  <p class="chicha-hint">Elige un avatar y entra al mapa: las vasijas saldrán corriendo. Haz clic sobre cada una para devolverla a su sitio.</p>
+                  <p class="chicha-hint chicha-hint--message">Las chicherías quedaron fuera del plano de 1894; recuperarlas es decidir qué merece existir en el papel.</p>
+                  <p class="chicha-counter" id="chicha-counter">Chicherías recuperadas: <strong id="chicha-count">0 / 8</strong></p>
+                  <hr class="chicha-divider" />
+                </section>
+
+                <section class="instrument-section" id="avatar-section" aria-label="Avatar del puntero">
+                  <fieldset class="lighting-options avatar-options">
+                    <legend class="instrument-label">Avatar</legend>
+                    <label class="lighting-option"><input type="checkbox" id="avatar-barbara" data-avatar="barbara" /><span>Bárbara</span></label>
+                    <label class="lighting-option"><input type="checkbox" id="avatar-pedro-pablo" data-avatar="pedroPablo" /><span>Pedro Pablo</span></label>
+                  </fieldset>
+                </section>
+
+                <section class="instrument-section instrument-section--placeholder" aria-label="Convenciones del mapa">
+                  <p class="instrument-label">Convenciones</p>
+                  <ul class="legend-list" id="legend-list"></ul>
+                </section>
+              </div>
+            </aside>
+          </div>
+          <section class="context-panel" id="context-panel" aria-label="Contexto histórico" hidden>
+            <h2 class="context-panel__title">Contexto histórico</h2>
+            <div class="context-panel__layout" id="context-layout">
+              <div class="context-panel__columns">
+                <p>A partir de 1889, Bogotá empezó a dejar atrás su aspecto de oscura aldea colonial. De noche, la ciudad se alumbraba con faroles de gas y petróleo que daban una luz cálida pero débil, olían fuerte, ahumaban el aire y manchaban techos y paredes. Poco a poco, y con decisión, se fue convirtiendo en una ciudad elegante, a la vanguardia de otras capitales del mundo. Todo esto fue posible gracias a la llegada de la luz eléctrica: los faroles fueron reemplazados por lámparas de arco, luces potentes de resplandor azulado, comparable al de la luna (Montealegre, 2025).</p>
+                <p>Esta es una carpeta de archivo sobre la Bogotá de 1894, dividida en tres solapas. La primera muestra cómo se instaló el alumbrado público y eléctrico entre 1889 y 1896. Activa los controles y verás que la luz no llegó a todas partes al mismo tiempo: primero iluminó la Plaza de Bolívar y la carrera Séptima, zonas donde vivía y se movía la élite política de la ciudad. Solo con los años otros sectores pudieron acceder al servicio, que para entonces administraba la Bogotá Electric Light Company.</p>
+                <p>La segunda solapa simula una noche en Santafé. Luces inestables y muy potentes iluminan la ciudad desde las 6:00 p. m. hasta las 5:30 a. m. En ese lapso, los filamentos de carbón de los que dependen las lámparas se gastan y estas se funden. Esto hizo que la gente, entusiasmada al principio con el cambio, empezara a desconfiar de aquella luz tan deslumbrante. Para 1891, los y las bogotanas ya querían cambiar las lámparas de arco por luz incandescente, más suave. Esa luz no llegaría sino hasta 1900, de la mano de la compañía de los hermanos Samper y Brush.</p>
+                <p>La luz eléctrica no solo cambió el paisaje nocturno de Bogotá: también dejó ver quién llegó primero a la modernidad y cómo, entre el asombro y la desconfianza, la ciudad aprendió a vivir con ella. Recorre las solapas, mueve los controles y mira Bogotá desde sus noches de 1894.</p>
+              </div>
+            </div>
+            <div class="context-panel__simple" id="context-empty" hidden></div>
+          </section>
+          </div>
+          </div>
+
+          <aside class="location-panel" id="location-panel" aria-live="polite" hidden>
+            <button class="close-panel" id="close-panel" type="button" aria-label="Cerrar información">×</button>
+            <p class="panel-kicker" id="panel-kicker"></p>
+            <h2 id="panel-title"></h2>
+            <p id="panel-description"></p>
+          </aside>
+        </main>
+      </section>
+    </main>
+
+    <section class="narrative-panel info-overlay" id="info-overlay" aria-label="Más información sobre el proyecto" hidden>
+      <button type="button" class="info-overlay__back" id="info-overlay-back" aria-label="Regresar a las preguntas">←</button>
+      <div class="info-layout">
+        <header class="info-header">
+          <div class="info-header__title">
+            <p class="info-kicker">Biblioteca Nacional de Colombia</p>
+            <h1>Claves para entender el proyecto</h1>
+          </div>
+        </header>
+
+        <section class="info-reading" aria-label="Una lectura nocturna de Bogotá">
+          <p>Este proyecto vuelve sobre el Plano Topográfico de Bogotá para explorar la ciudad desde sus noches, sus formas de iluminación y las historias que la cartografía deja en silencio.</p>
+        </section>
+
+        <section class="info-topics" aria-label="Información del proyecto">
+          <article class="info-topic">
+            <p class="info-topic__index">01</p>
+            <h2>El plano</h2>
+            <p>La base cartográfica es el Plano Topográfico de Bogotá, levantado por Carlos Clavijo en 1894.</p>
+          </article>
+          <article class="info-topic">
+            <p class="info-topic__index">02</p>
+            <h2>El recorrido</h2>
+            <p>La línea de tiempo recorre de 1889 a 1896 y el horario, de 16:30 a 09:00. Permite explorar focos y localizaciones.</p>
+          </article>
+          <article class="info-topic">
+            <p class="info-topic__index">03</p>
+            <h2>Tres preguntas</h2>
+            <p>Alumbrado público y eléctrico (1889–1896); silencios del plano y chicherías; lugares de la Biblioteca Nacional y su relación con el Museo de Bogotá.</p>
+          </article>
+          <article class="info-topic">
+            <p class="info-topic__index">04</p>
+            <h2>Autoría y fuente</h2>
+            <p>Cartografía base: Carlos Clavijo, 1894. Proyecto de investigación cartográfica de la Biblioteca Nacional de Colombia.</p>
+          </article>
+          <article class="info-topic info-topic--avatars">
+            <p class="info-topic__index">05</p>
+            <h2>Los personajes</h2>
+            <p><strong>Bárbara</strong>, verdulera santafereña, le gusta cosechar antes del alba. <strong>Pedro Pablo</strong>, muchacho talabartero, recorre la carrera Séptima vendiendo correas, aperos y monturas. Sus nombres nacen de las parroquias, unidades administrativas político-religiosas de la época.</p>
+            <div class="info-topic__avatars"><img src="/assets/Stickers/Barbara@600x.png" alt="Bárbara" /><img src="/assets/Stickers/PedroPablo@600x.png" alt="Pedro Pablo" /></div>
+          </article>
+        </section>
+
+        <section class="info-reference" aria-label="Referencia bibliográfica">
+          <h2 class="info-archive-title">Referencia</h2>
+          <p>Juan Felipe Montealegre, «Luz de arco y luz incandescente: estética del alumbrado eléctrico en Bogotá, Colombia (1889-1919)», <em>DECUMANUS</em> 13, n.o 13 (2024), <a href="https://doi.org/10.20983/decumanus.2024.2.1" target="_blank" rel="noopener">https://doi.org/10.20983/decumanus.2024.2.1</a>.</p>
+        </section>
+
+        <h2 class="info-archive-title">Archivo visual</h2>
+        <div class="info-archive" aria-label="Imágenes del archivo visual del proyecto">
+          <figure class="info-archive__piece">
+            <button class="info-archive__button" type="button" data-title="Bogotá nocturno" data-credit="Moreno Otero · Archivo visual">
+              <img decoding="async" src="/assets/Imágenes/web/Bogotá nocturno.jpg" alt="Impreso histórico Bogotá nocturno, por Moreno Otero" />
+            </button>
+            <figcaption><span>Bogotá nocturno</span><span>Moreno Otero · Archivo visual</span></figcaption>
+          </figure>
+          <figure class="info-archive__piece">
+            <button class="info-archive__button" type="button" data-title="Clavijo" data-credit="Imagen del archivo visual">
+              <img decoding="async" src="/assets/Imágenes/web/Clavijo.jpg" alt="Imagen histórica de Clavijo" />
+            </button>
+            <figcaption><span>Clavijo</span><span>Imagen del archivo visual</span></figcaption>
+          </figure>
+          <figure class="info-archive__piece">
+            <button class="info-archive__button" type="button" data-title="Lámina 1" data-credit="Imagen del archivo visual">
+              <img decoding="async" src="/assets/Imágenes/web/Lámina 1.webp" alt="Lámina histórica 1" />
+            </button>
+            <figcaption><span>Lámina 1</span><span>Imagen del archivo visual</span></figcaption>
+          </figure>
+          <figure class="info-archive__piece">
+            <button class="info-archive__button" type="button" data-title="Clavijo 1891" data-credit="Archivo visual">
+              <img decoding="async" src="/assets/Imágenes/web/Clavijo 1891.jpg" alt="Imagen de Clavijo fechada en 1891" />
+            </button>
+            <figcaption><span>Clavijo 1891</span><span>Archivo visual</span></figcaption>
+          </figure>
+          <figure class="info-archive__piece">
+            <button class="info-archive__button" type="button" data-title="Mujeres de pueblo" data-credit="Banco de la República, Mujeres de pueblo, de Ramón Torres Méndez, 1872–1910, litografía sobre papel, registro AP1324, Colección de Arte.">
+              <img decoding="async" src="/assets/Imágenes/web/Mujeres de pueblo.jpg" alt="Litografía Mujeres de pueblo, de Ramón Torres Méndez" />
+            </button>
+            <figcaption><span>Mujeres de pueblo</span><span>Banco de la República, Mujeres de pueblo, de Ramón Torres Méndez, 1872–1910, litografía sobre papel, registro AP1324, Colección de Arte.</span></figcaption>
+          </figure>
+          <figure class="info-archive__piece">
+            <button class="info-archive__button" type="button" data-title="Muchachos vendiendo efectos de talabartería" data-credit="Banco de la República, Muchachos vendiendo efectos de talabartería, de Ramón Torres Méndez, ca. 1860–1910, litografía sobre papel, registro AP1343, Colección de Arte.">
+              <img decoding="async" src="/assets/Imágenes/web/Muchachos.jpg" alt="Litografía Muchachos vendiendo efectos de talabartería, de Ramón Torres Méndez" />
+            </button>
+            <figcaption><span>Muchachos vendiendo efectos de talabartería</span><span>Banco de la República, Muchachos vendiendo efectos de talabartería, de Ramón Torres Méndez, ca. 1860–1910, litografía sobre papel, registro AP1343, Colección de Arte.</span></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <dialog class="info-image-dialog" id="info-image-dialog" aria-label="Imagen ampliada">
+      <div class="info-image-dialog__toolbar">
+        <button type="button" class="info-image-dialog__close" id="info-image-close" aria-label="Cerrar imagen">×</button>
+      </div>
+      <figure class="info-image-dialog__figure">
+        <img id="info-image-dialog-image" alt="" />
+      </figure>
+    </dialog>
+
+    <script type="module" src="/src/main.js"></script>
+    <img class="avatar-cursor" id="avatar-cursor" alt="" hidden />
+</body>
+</html>
