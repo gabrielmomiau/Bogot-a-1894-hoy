@@ -1096,6 +1096,7 @@ function enterExperience(narrativeId) {
     renderClock();
     applyMapTransform();
     dayMap.style.opacity = "";
+    if (viewMode === "map") dayMap.style.visibility = "";
     locationsLayer.style.visibility = "";
     if (experience.showVenueLamps && activeNarrative === experience.id) showVenueLamps(experience);
   });
