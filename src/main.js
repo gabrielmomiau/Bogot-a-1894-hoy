@@ -1,6 +1,5 @@
 
 
-import "./styles.css";
 import { AVATARS, AVATAR_ANCHOR, AVATAR_HEIGHT_PX } from "./data/avatars.js";
 import { clockConfig } from "./data/clock.js";
 import {
@@ -111,21 +110,28 @@ function shuffle(items) {
 function arrangeNarrativeImages() {
   const slideWidth = titleSlide.clientWidth || window.innerWidth;
   const slideHeight = titleSlide.clientHeight || window.innerHeight;
-  const layouts = Array.from({ length: narrativeImages.length }, () => ({
-    left: 0.36 + Math.random() * 0.46,
-    top: 0.03 + Math.random() * 0.47,
-    width: Math.max(140, Math.min(540, slideWidth * (0.22 + Math.random() * 0.16))),
-  }));
+  const compact = slideWidth <= 700;
+  const gallery = compact
+    ? { left: slideWidth * .06, top: slideHeight * .05, width: slideWidth * .88, height: slideHeight * .4 }
+    : { left: slideWidth * .56, top: slideHeight * .08, width: slideWidth * .4, height: slideHeight * .84 };
   const zIndexes = shuffle(Array.from({ length: narrativeImages.length }, (_, index) => index + 1));
   const rotations = shuffle([-14, -9, -4, 4, 9, 14]).slice(0, narrativeImages.length);
 
   shuffle([...narrativeImages]).forEach((image, index) => {
-    const layout = layouts[index];
-    const left = Math.min(slideWidth * layout.left, slideWidth - layout.width - 12);
+    const width = Math.min(420, gallery.width * (.5 + Math.random() * .1));
+    const height = gallery.height * .6;
+    const angle = Math.abs(rotations[index]) * Math.PI / 180;
+    const rotatedWidth = width * Math.cos(angle) + height * Math.sin(angle);
+    const rotatedHeight = width * Math.sin(angle) + height * Math.cos(angle);
+    const left = gallery.left + Math.max(0, (rotatedWidth - width) / 2)
+      + Math.random() * Math.max(0, gallery.width - rotatedWidth);
+    const top = gallery.top + Math.max(0, (rotatedHeight - height) / 2)
+      + Math.random() * Math.max(0, gallery.height - rotatedHeight);
     image.style.left = `${left}px`;
-    image.style.top = `${slideHeight * layout.top}px`;
+    image.style.top = `${top}px`;
     image.style.right = "auto";
-    image.style.width = `${layout.width}px`;
+    image.style.width = `${width}px`;
+    image.style.maxHeight = `${height}px`;
     image.style.transform = `rotate(${rotations[index]}deg)`;
     image.style.zIndex = String(zIndexes[index]);
     image.hidden = false;
@@ -143,6 +149,9 @@ function resetContextSequence() {
 function startContextSequence() {
   resetContextSequence();
   const runId = contextSequenceRun;
+  contextQuestions.forEach((question) => {
+    question.style.setProperty("--ticker-color", question.dataset.tickerColor);
+  });
 
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     contextMessages.forEach((message) => message.classList.add("is-parked"));
@@ -168,6 +177,7 @@ function startContextSequence() {
 }
 
 arrangeNarrativeImages();
+window.addEventListener("resize", arrangeNarrativeImages);
 let contextSlideActive = false;
 let contextVisibilityFrame = 0;
 
@@ -1034,10 +1044,10 @@ function selectNarrative(narrativeId, question) {
 
   selectedNarrative = narrativeId;
   question.style.setProperty("--ticker-color", question.dataset.tickerColor);
-  contextQuestions.forEach((item) => item.classList.toggle("is-selected", item === question));
   closeBibliographicCard();
   bibliographicTitle.textContent = experience.cardTitle ?? experience.label;
   bibliographicDescription.textContent = experience.cardDescription ?? experience.introDescription;
+  bibliographicSlide.dataset.experience = narrativeId;
   bibliographicSlide.style.setProperty("--narrative-accent", question.dataset.tickerColor);
   bibliographicSlide.hidden = false;
   bibliographicSlide.classList.remove("is-entering");
@@ -1059,6 +1069,7 @@ function toggleBibliographicCard() {
 }
 
 function closeBibliographicCard() {
+  bibliographicCardPreview.scrollTop = 0;
   bibliographicFile.classList.remove("is-open");
   bibliographicCardPreview.setAttribute("aria-expanded", "false");
   bibliographicMapButton.setAttribute("aria-hidden", "true");
@@ -1074,9 +1085,7 @@ function enterExperience(narrativeId) {
   }
 
   activeNarrative = narrativeId;
-  contextQuestions.forEach((question) => {
-    question.classList.toggle("is-selected", question.dataset.narrative === narrativeId);
-  });
+  experiencePanel.dataset.experience = narrativeId;
   experienceKicker.textContent = experience.label;
   bibliographicSlide.hidden = true;
   bibliographicSlide.classList.remove("is-entering");

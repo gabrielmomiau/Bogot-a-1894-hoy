@@ -8,6 +8,8 @@ export const chicheriasExperience = {
   id: "chicherias",
   label: "¿Qué nos dice un mapa de 1894 hoy?",
   introDescription: "Los silencios de la cartografía y las chicherías de Bogotá.",
+  cardTitle: "Secretos, silencios y borramientos cartográficos",
+  cardDescription: "Carpeta digital con una cartografía interactiva que muestra la posible distribución espacial del centenar de chicherías que había en Bogotá a finales del siglo XIX y que fueron omitidas del mapa. “Atrapa las chicherías” es un juego con dificultad deliberada, porque las vasijas de chicha se despiertan y corren al llegar la noche, lo cual simboliza la dificultad de controlar estos importantes establecimientos de celebración, aun mientras se quisiera. Además, hay un folio de contexto, que brinda más información.",
   maps: {
     day: new URL("../../assets/Mapas/Mapa_BogotaDia_1894 chicha.svg", import.meta.url).href,
   },

@@ -3,9 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Luz nocturna en 1894</title>
+    <title>Preguntas cartográficas</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23960018' d='M0 0h64v64H0z'/%3E%3Cpath fill='none' stroke='%23d1971c' stroke-width='4' stroke-linejoin='round' d='m8 16 16-6 16 6 16-6v38l-16 6-16-6-16 6Zm16-6v38m16-32v38'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/src/styles.css" />
     <style>
-      html, body { margin: 0; background: #000; }
+      html, body { margin: 0; background: var(--surface-page); }
       body { visibility: hidden; }
       body.app-ready { visibility: visible; }
     </style>
@@ -18,18 +20,18 @@
         <img class="narrative-image" src="/assets/Imágenes/web/s1/Lámina 1.webp" alt="Lámina histórica 1" draggable="false" hidden />
         <img class="narrative-image" src="/assets/Imágenes/web/s1/Clavijo 1891.webp" alt="Mapa histórico de Clavijo 1891" draggable="false" hidden />
         <div class="narrative-panel__inner">
-          <p class="intro-kicker">Cartografía histórica • Biblioteca Nacional de Colombia</p>
-          <h2>Misma ciudad,<br />otras lecturas.</h2>
+          <p class="intro-kicker">Preguntas al Plano Topográfico de Bogotá, 1894.</p>
+          <h2>Misma mapa,<br />varios secretos.</h2>
         </div>
       </section>
 
       <section class="narrative-panel narrative-panel--context" aria-label="Pantalla narrativa 2">
         <div class="narrative-panel__inner narrative-panel__inner--editorial">
           <div class="context-message-stack" id="context-message-stack" aria-label="Tres preguntas que estructuran la investigación">
-            <button type="button" class="context-question" data-narrative="lighting" data-ticker-color="#907954">¿Cómo ha anochecido antes, en otros tiempos, en Bogotá?</button>
-            <button type="button" class="context-question" data-narrative="chicherias" data-ticker-color="#54657c">¿Qué nos dice un mapa de 1894 hoy?</button>
-            <button type="button" class="context-question" data-narrative="heritage" data-ticker-color="#b25c40">¿Dónde ha pasado la noche nuestro patrimonio?</button>
-            <button type="button" class="context-more-info" id="more-info-trigger">Más sobre este proyecto</button>
+            <button type="button" class="context-question" data-narrative="lighting" data-ticker-color="var(--question-lighting)">¿Cómo se organizó espacialmente el primer alumbrado eléctrico público en Bogotá? </button>
+            <button type="button" class="context-question" data-narrative="chicherias" data-ticker-color="var(--question-chicherias)">¿Qué nos dice un mapa de 1894 hoy?</button>
+            <button type="button" class="context-question" data-narrative="heritage" data-ticker-color="var(--question-heritage)">De 1777 a hoy, ¿dónde ha pasado la noche nuestro patrimonio? </button>
+            <button type="button" class="context-more-info" id="more-info-trigger">¡Decisiones y proceso de este proyecto!</button>
           </div>
         </div>
       </section>
@@ -38,12 +40,12 @@
         <button type="button" class="bibliographic-back" id="bibliographic-back" aria-label="Regresar a las preguntas">←</button>
         <article class="bibliographic-file" id="bibliographic-file" aria-label="Ficha de biblioteca interactiva">
           <div class="bibliographic-envelope" aria-hidden="true">
-            <p class="bibliographic-envelope__caption">Biblioteca Nacional de Colombia · Museo de Bogotá<br />Bogotá - 2026</p>
+            <p class="bibliographic-envelope__caption">Biblioteca Nacional de Colombia · Museo de Bogotá.<br />2026.</p>
             <div class="bibliographic-envelope__pocket"></div>
           </div>
           <div class="bibliographic-card" id="bibliographic-card">
             <div class="bibliographic-card__preview" id="bibliographic-card-preview" role="button" tabindex="0" aria-label="Extraer o guardar el fichero de biblioteca" aria-expanded="false">
-              <span class="bibliographic-card__label">Fichero</span>
+              <span class="bibliographic-card__label">Fichero BNC001</span>
               <h1 class="bibliographic-card__title" id="bibliographic-title"></h1>
               <p class="bibliographic-card__description" id="bibliographic-description"></p>
             </div>
@@ -172,27 +174,27 @@
         </section>
 
         <section class="info-topics" aria-label="Información del proyecto">
-          <article class="info-topic">
+          <article class="info-topic" data-color="ochre">
             <p class="info-topic__index">01</p>
             <h2>El plano</h2>
             <p>La base cartográfica es el Plano Topográfico de Bogotá, levantado por Carlos Clavijo en 1894.</p>
           </article>
-          <article class="info-topic">
+          <article class="info-topic" data-color="olive">
             <p class="info-topic__index">02</p>
             <h2>El recorrido</h2>
             <p>La línea de tiempo recorre de 1889 a 1896 y el horario, de 16:30 a 09:00. Permite explorar focos y localizaciones.</p>
           </article>
-          <article class="info-topic">
+          <article class="info-topic" data-color="carmine">
             <p class="info-topic__index">03</p>
             <h2>Tres preguntas</h2>
             <p>Alumbrado público y eléctrico (1889–1896); silencios del plano y chicherías; lugares de la Biblioteca Nacional y su relación con el Museo de Bogotá.</p>
           </article>
-          <article class="info-topic">
+          <article class="info-topic" data-color="blue">
             <p class="info-topic__index">04</p>
             <h2>Autoría y fuente</h2>
             <p>Cartografía base: Carlos Clavijo, 1894. Proyecto de investigación cartográfica de la Biblioteca Nacional de Colombia.</p>
           </article>
-          <article class="info-topic info-topic--avatars">
+          <article class="info-topic info-topic--avatars" data-color="sky">
             <p class="info-topic__index">05</p>
             <h2>Los personajes</h2>
             <p><strong>Bárbara</strong>, verdulera santafereña, le gusta cosechar antes del alba. <strong>Pedro Pablo</strong>, muchacho talabartero, recorre la carrera Séptima vendiendo correas, aperos y monturas. Sus nombres nacen de las parroquias, unidades administrativas político-religiosas de la época.</p>
