@@ -1050,6 +1050,7 @@ h2 { font-family: "Cormorant Garamond", serif; font-weight: 600; }
 .instrument-section { padding: .35rem 0 .8rem; border-bottom: 1px solid var(--separator); }
 .instrument-section:last-child { border-bottom: 0; }
 .instrument-section--placeholder { padding-top: .7rem; }
+.heritage-hint { font-size: .75rem; line-height: 1.6; }
 .instrument-clock { display: flex; flex-direction: column; gap: .5rem; }
 .timeline-labels { display: flex; justify-content: space-between; color: var(--text-primary); font-size: .68rem; }
 #time-slider { width: 100%; margin: .15rem 0; accent-color: var(--interactive-hover); cursor: ew-resize; touch-action: pan-y; }

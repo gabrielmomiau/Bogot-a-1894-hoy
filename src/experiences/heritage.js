@@ -12,7 +12,7 @@ export const heritageExperience = {
   label: "¿Dónde ha pasado la noche nuestro patrimonio?",
   introDescription: "Los lugares que ha ocupado la Biblioteca Nacional de Colombia y su relación con el Museo de Bogotá.",
   cardTitle: "Un niebluno te lo cuenta…",
-  cardDescription: "Carpeta digital con una cartografía en la que Pedro Pablo, un artesano talabartero niebluno (gentilicio de los habitantes de la Parroquia de Las Nieves), narra cinco viñetas entre las sedes de la Biblioteca Nacional de Colombia y el Museo de Bogotá. Usa las flechas del globo para avanzar o regresar: cada viñeta sitúa al personaje en el punto del plano asociado. El punto de Casa Sámano utiliza provisionalmente el símbolo del Museo, pendiente de ajuste.",
+  cardDescription: "Carpeta digital con una cartografía en la que Pedro Pablo, un artesano talabartero niebluno (gentilicio de los habitantes de la Parroquia de Las Nieves), narra cinco viñetas entre las sedes de la Biblioteca Nacional de Colombia y el Museo de Bogotá. Presiona Empezar diálogos en el menú y usa las flechas del globo para avanzar o regresar: cada viñeta sitúa al personaje en el punto del plano asociado. El punto de Casa Sámano utiliza provisionalmente el símbolo del Museo, pendiente de ajuste.",
   maps: {
     day: new URL("../../assets/Mapas/Mapa_BogotaDia_1894 bnc copy.svg", import.meta.url).href,
     night: new URL("../../assets/Mapas/Mapa_bogotaNoche_1894 bnc copy.svg", import.meta.url).href,

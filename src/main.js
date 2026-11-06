@@ -779,6 +779,7 @@ function resetView() {
 function toggleInstrumentPanel(forceOpen) {
   const shouldOpen = typeof forceOpen === "boolean" ? forceOpen : !instrumentPanel.classList.contains("is-open");
   instrumentPanel.classList.toggle("is-open", shouldOpen);
+  instrumentPanel.setAttribute("aria-expanded", String(shouldOpen));
   instrumentToggle.setAttribute("aria-expanded", String(shouldOpen));
   instrumentToggle.setAttribute("aria-label", shouldOpen ? "Cerrar instrumentos del mapa" : "Abrir instrumentos del mapa");
   requestAnimationFrame(applyMapTransform);
@@ -852,7 +853,7 @@ instrumentToggle.addEventListener("click", (event) => {
 });
 
 document.addEventListener("click", (event) => {
-  if (!instrumentPanel.contains(event.target)) {
+  if (experiencePanel.contains(event.target) && !instrumentPanel.contains(event.target)) {
     toggleInstrumentPanel(false);
   }
 });
@@ -952,16 +953,19 @@ const walkerImage = document.querySelector("#walker");
 const heritageDialogue = document.querySelector("#heritage-dialogue");
 const heritagePrevious = document.querySelector("#heritage-previous");
 const heritageNext = document.querySelector("#heritage-next");
+const heritageStart = document.querySelector("#heritage-start");
+let heritageDialogueStarted = false;
 let heritageIndex = 0;
 let heritagePoint = null;
 let heritageDialogueFrame = null;
 
 function positionHeritageDialogue() {
-  if (!heritagePoint || heritageDialogue.hidden) return;
+  if (!heritagePoint) return;
   cancelAnimationFrame(heritageDialogueFrame);
   heritageDialogueFrame = requestAnimationFrame(() => {
     const scale = Number.parseFloat(canvas.style.getPropertyValue("--map-scale"));
     walkerImage.style.height = `${56 / scale}px`;
+    if (heritageDialogue.hidden) return;
     const mapRect = canvas.getBoundingClientRect();
     const viewportRect = viewport.getBoundingClientRect();
     const actualScale = mapRect.width / mapWidth;
@@ -991,8 +995,9 @@ function renderHeritageNarration() {
   walkerImage.style.left = `${heritagePoint.x}px`;
   walkerImage.style.top = `${heritagePoint.y}px`;
   walkerImage.hidden = false;
-  heritageDialogue.hidden = false;
-  document.querySelector("#heritage-dialogue-text").textContent = `“${fragment.text}”`;
+  heritageDialogue.hidden = !heritageDialogueStarted;
+  heritageStart.disabled = false;
+  document.querySelector("#heritage-dialogue-text").textContent = heritageDialogueStarted ? fragment.text : "";
   document.querySelector("#heritage-progress").textContent = `${heritageIndex + 1} / ${fragments.length}`;
   heritagePrevious.disabled = heritageIndex === 0;
   heritageNext.disabled = heritageIndex === fragments.length - 1;
@@ -1002,6 +1007,12 @@ function renderHeritageNarration() {
   applyMapTransform();
 }
 
+heritageStart.addEventListener("click", () => {
+  heritageDialogueStarted = true;
+  heritageIndex = 0;
+  heritageStart.textContent = "Reiniciar diálogos";
+  renderHeritageNarration();
+});
 heritagePrevious.addEventListener("click", () => {
   if (heritageIndex === 0) return;
   heritageIndex -= 1;
@@ -1035,6 +1046,9 @@ function stopWalker() {
   cancelAnimationFrame(heritageDialogueFrame);
   heritageDialogueFrame = null;
   heritageIndex = 0;
+  heritageDialogueStarted = false;
+  heritageStart.disabled = true;
+  heritageStart.textContent = "Empezar diálogos";
   heritagePoint = null;
   heritageDialogue.hidden = true;
   walkerImage.hidden = true;
@@ -1063,6 +1077,8 @@ function renderLegend(experience) {
 }
 
 function configureFolder(experience) {
+  toggleInstrumentPanel(true);
+  document.querySelector("#heritage-intro").hidden = !experience.narration;
   renderLegend(experience);
   folder.dataset.experience = experience.id;
   folderTabs.forEach((tab) => { tab.hidden = !experience.tabs.includes(tab.dataset.mode); });
