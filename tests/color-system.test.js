@@ -121,15 +121,61 @@ test("seven folios use distinct palette tones, with a separate eighth exterior",
   assert.equal(new Set(colors).size, 8);
 });
 
-test("historical imagery retains its original appearance and full framing", () => {
+test("historical imagery retains its appearance and full framing outside archive thumbnails", () => {
   assert.doesNotMatch(html + css, /duotone|feColorMatrix|feFlood|mix-blend-mode|background-blend-mode/);
   for (const [, selector, declarations] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     if (!/narrative-image|info-archive__button img|info-image-dialog__figure img|info-topic__avatars img|context-avatars__img|context-panel__simple-image/.test(selector)) continue;
-    assert.doesNotMatch(declarations, /filter:|opacity:|object-fit:\s*cover|transform:\s*scale/);
+    assert.doesNotMatch(declarations, /filter:|opacity:|transform:\s*scale/);
+    if (!/info-archive__button img/.test(selector)) assert.doesNotMatch(declarations, /object-fit:\s*cover/);
   }
   assert.match(html, /<link rel="stylesheet" href="\/src\/styles.css"/);
   assert.match(css, /#time-slider::-webkit-slider-thumb/);
   assert.match(css, /#time-slider::-moz-range-thumb/);
+});
+
+test("archive thumbnails fill uniform frames while expanded images stay complete", () => {
+  const frame = css.match(/\.info-archive__button\s*\{([^}]+)\}/)[1];
+  const image = css.match(/\.info-archive__button img\s*\{([^}]+)\}/)[1];
+  assert.match(frame, /position: relative/);
+  assert.match(frame, /overflow: hidden/);
+  assert.match(css, /\.info-archive__button\s*\{[^}]*aspect-ratio: 4 \/ 3/);
+  assert.match(image, /position: absolute/);
+  assert.match(image, /width: 100%/);
+  assert.match(image, /height: 100%/);
+  assert.match(image, /object-fit: cover/);
+  assert.doesNotMatch(css, /\.info-image-dialog__figure img\s*\{[^}]*object-fit:\s*cover/);
+});
+
+test("process sections have no colored boxes and varied colors apply only to headings", () => {
+  const topic = css.match(/\.info-topic\s*\{([^}]+)\}/)[1];
+  assert.match(topic, /background: transparent/);
+  assert.match(topic, /border: 0/);
+  for (const [, selector, declarations] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (!/\.info-topic\[data-color/.test(selector)) continue;
+    assert.match(selector.trim(), / h2$/);
+    assert.doesNotMatch(declarations, /background:|border|--text-primary:|--text-secondary:/);
+    const token = declarations.match(/color: var\(--([\w-]+)\)/)[1];
+    assert.ok(contrast(token, "surface-page") >= 4.5, `${token} heading contrast`);
+  }
+  assert.doesNotMatch(css, /\.info-topic--avatars\s*\{[^}]*border-top-color/);
+  assert.match(css, /\.info-reference\s*\{[^}]*border: 0/);
+});
+
+test("process content contains the new sections, references, credits and preserved archive", () => {
+  const process = html.slice(html.indexOf('id="info-overlay"'), html.indexOf('<dialog class="info-image-dialog"'));
+  assert.deepEqual(
+    [...process.matchAll(/<h2>([^<]+)<\/h2>/g)].map(([, title]) => title),
+    ["Descripción general", "Metodología", "Personajes", "Plano", "Referencias"],
+  );
+  assert.equal((process.match(/<li>/g) ?? []).length, 5);
+  assert.equal((process.match(/class="info-archive__button"/g) ?? []).length, 6);
+  assert.match(process, /class="info-credits"/);
+  assert.match(process, /Editor cartográfico y montaje web:/);
+  assert.match(process, /costura y al aplanchado/);
+  assert.match(process, /Camellón de Las Nieves/);
+  assert.doesNotMatch(process, /verdulera|<h2>El recorrido|<h2>Tres preguntas|<h2>Autoría y fuente|Una lectura nocturna de Bogotá/);
+  assert.match(css, /\.info-topics\.info-topics--process \{ grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(css, /\.info-references a \{[^}]*overflow-wrap: anywhere/);
 });
 
 test("cover captions, green question states and transparent process button are explicit", () => {
@@ -145,6 +191,7 @@ test("cover captions, green question states and transparent process button are e
 test("cover and questions use independent scales and file backgrounds use soft pigments", () => {
   assert.match(css, /\.narrative-panel--title h2 \{[^}]*font-size: var\(--headline-size\)/);
   assert.match(css, /\.context-question \{[^}]*font-size: var\(--question-size\)/);
+  assert.match(css, /\.context-question \{[^}]*line-height: 1\.2;/);
   assert.match(css, /\.narrative-panel--title \.intro-kicker \{[^}]*font-size: clamp\(\.9rem, 1\.2vw, 1\.2rem\)/);
   assert.doesNotMatch(css, /\.context-question \{[^}]*font-size: (?:clamp|\d)/);
   const chicherias = css.match(/:is\(\.narrative-panel--bibliographic, \.experience-panel\)\[data-experience="chicherias"\]\s*\{([^}]+)\}/)[1];

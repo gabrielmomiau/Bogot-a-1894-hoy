@@ -11,7 +11,7 @@ import {
   LIGHTING_HOURLY_ON_MINUTES, LIGHTING_BURNOUTS, LIGHTING_FLICKER_CHECK_MS, LIGHTING_FLICKER_PROBABILITY, LIGHTING_OUTAGE_PROBABILITY,
 } from "./data/lights.js";
 import { BASE_LEGEND, CHICHA_LEGEND, VENUES_LEGEND } from "./data/legend.js";
-import { setupChichas } from "./chichas.js";
+import { CHICHA_COUNT, setupChichas } from "./chichas.js";
 import { mapLocations } from "./data/locations.js";
 import { experiences } from "./experiences/index.js";
 
@@ -53,6 +53,9 @@ const moreInfoTrigger = document.querySelector("#more-info-trigger");
 const experiencePanel = document.querySelector(".experience-panel");
 const experienceBackButton = document.querySelector("#experience-back");
 const experienceKicker = document.querySelector("#experience-kicker");
+const mapLoadStatus = document.querySelector("#map-load-status");
+const mapLoadMessage = document.querySelector("#map-load-message");
+const mapLoadRetry = document.querySelector("#map-load-retry");
 const infoOverlay = document.querySelector("#info-overlay");
 const infoOverlayBackButton = document.querySelector("#info-overlay-back");
 const infoArchiveButtons = Array.from(document.querySelectorAll(".info-archive__button"));
@@ -70,6 +73,7 @@ const mapState = {
   panX: 0,
   panY: 0,
   dragActive: false,
+  dragMoved: false,
   pointerStartX: 0,
   pointerStartY: 0,
   panStartX: 0,
@@ -85,6 +89,7 @@ let narrativeImageDrag = null;
 let contextSequenceTimer;
 let contextSequenceRun = 0;
 let activeNarrative = null;
+let experienceLoadRun = 0;
 let selectedNarrative = null;
 let viewMode = "timeline";
 let loadedMapsKey = null;
@@ -291,17 +296,25 @@ function waitForMapSvg(mapObject) {
       return;
     }
 
-    mapObject.addEventListener("load", () => {
+    function cleanup() {
+      mapObject.removeEventListener("load", onLoad);
+      mapObject.removeEventListener("error", onError);
+    }
+    function onLoad() {
+      cleanup();
       const svgDocument = getLoadedSvgDocument(mapObject);
       if (!svgDocument) {
         reject(new Error(`El mapa SVG no contiene un documento válido: ${mapObject.data}`));
         return;
       }
       resolve(svgDocument);
-    }, { once: true });
-    mapObject.addEventListener("error", () => {
+    }
+    function onError() {
+      cleanup();
       reject(new Error(`No se pudo cargar el mapa SVG: ${mapObject.data}`));
-    }, { once: true });
+    }
+    mapObject.addEventListener("load", onLoad, { once: true });
+    mapObject.addEventListener("error", onError, { once: true });
   });
 }
 
@@ -455,10 +468,13 @@ function initializeLightingMaps() {
 }
 
 async function loadLightingMaps() {
+  const currentDayMap = dayMap;
+  const currentNightMap = nightMap;
   const [dayDocument, nightDocument] = await Promise.all([
-    waitForMapSvg(dayMap),
-    waitForMapSvg(nightMap),
+    waitForMapSvg(currentDayMap),
+    waitForMapSvg(currentNightMap),
   ]);
+  if (currentDayMap !== dayMap || currentNightMap !== nightMap) return;
   const dayLamps = readMapLamps(dayDocument);
   const nightLamps = readMapLamps(nightDocument);
   const nightLampsById = new Map(nightLamps.map((lamp) => [lamp.focusId, lamp]));
@@ -750,6 +766,7 @@ function applyMapTransform() {
 
   canvas.style.transform = `translate(${mapState.panX}px, ${mapState.panY}px) scale(${scale})`;
   canvas.style.setProperty("--map-scale", String(scale));
+  positionHeritageDialogue();
 }
 
 function resetView() {
@@ -779,9 +796,10 @@ document.querySelector("#zoom-out").addEventListener("click", () => {
 
 viewport.addEventListener("pointerdown", (event) => {
   if (event.button !== 0) return;
-  if (event.target.closest(".location-marker")) return;
+  if (event.target.closest(".location-marker, .heritage-dialogue")) return;
 
   mapState.dragActive = true;
+  mapState.dragMoved = false;
   mapState.pointerStartX = event.clientX;
   mapState.pointerStartY = event.clientY;
   mapState.panStartX = mapState.panX;
@@ -795,6 +813,7 @@ viewport.addEventListener("pointermove", (event) => {
 
   const deltaX = event.clientX - mapState.pointerStartX;
   const deltaY = event.clientY - mapState.pointerStartY;
+  if (Math.hypot(deltaX, deltaY) > 4) mapState.dragMoved = true;
   mapState.panX = mapState.panStartX + deltaX;
   mapState.panY = mapState.panStartY + deltaY;
   applyMapTransform();
@@ -846,6 +865,7 @@ function setViewMode(mode) {
   const isContext = mode === "context";
   document.getElementById("map-shell").hidden = isContext;
   document.getElementById("context-panel").hidden = !isContext;
+  if (!isContext) requestAnimationFrame(applyMapTransform);
   folderTabs.forEach((tab) => {
     const active = tab.dataset.mode === mode;
     tab.classList.toggle("is-active", active);
@@ -868,9 +888,53 @@ function setViewMode(mode) {
 }
 
 let chichaController = null;
+let chichasRunning = false;
+let chichaAudioContext = null;
+
+async function playChichaCatchSound() {
+  try {
+    chichaAudioContext ??= new AudioContext();
+    if (chichaAudioContext.state === "suspended") await chichaAudioContext.resume();
+    const now = chichaAudioContext.currentTime;
+    [660, 880].forEach((frequency, index) => {
+      const start = now + index * 0.055;
+      const oscillator = chichaAudioContext.createOscillator();
+      const gain = chichaAudioContext.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(frequency, start);
+      oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.94, start + 0.16);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.035, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+      oscillator.connect(gain);
+      gain.connect(chichaAudioContext.destination);
+      oscillator.onended = () => {
+        oscillator.disconnect();
+        gain.disconnect();
+      };
+      oscillator.start(start);
+      oscillator.stop(start + 0.2);
+    });
+  } catch (error) {
+    console.warn("No se pudo reproducir el sonido al atrapar la chichería.", error);
+  }
+}
 
 const catchCounter = document.getElementById("chicha-counter");
 const catchCount = document.getElementById("chicha-count");
+const chichaToggle = document.getElementById("chicha-toggle");
+
+function renderChichaToggle() {
+  chichaToggle.textContent = chichasRunning ? "Pausar" : "Iniciar";
+  chichaToggle.setAttribute("aria-pressed", String(chichasRunning));
+  chichaToggle.disabled = !chichaController;
+}
+
+chichaToggle.addEventListener("click", () => {
+  chichasRunning = !chichasRunning;
+  chichaController.setRunning(chichasRunning);
+  renderChichaToggle();
+});
 
 function updateCatchCounter(caught, total) {
   catchCount.textContent = `${caught} / ${total}`;
@@ -880,12 +944,76 @@ function updateCatchCounter(caught, total) {
 function stopChichas() {
   chichaController?.destroy();
   chichaController = null;
+  chichasRunning = false;
+  renderChichaToggle();
 }
 
 const walkerImage = document.querySelector("#walker");
-const WALKER_HEIGHT_PX = 30;
-const WALKER_SPEED_MAP_PX_PER_SECOND = 45;
-let walkerFrame = null;
+const heritageDialogue = document.querySelector("#heritage-dialogue");
+const heritagePrevious = document.querySelector("#heritage-previous");
+const heritageNext = document.querySelector("#heritage-next");
+let heritageIndex = 0;
+let heritagePoint = null;
+let heritageDialogueFrame = null;
+
+function positionHeritageDialogue() {
+  if (!heritagePoint || heritageDialogue.hidden) return;
+  cancelAnimationFrame(heritageDialogueFrame);
+  heritageDialogueFrame = requestAnimationFrame(() => {
+    const scale = Number.parseFloat(canvas.style.getPropertyValue("--map-scale"));
+    walkerImage.style.height = `${56 / scale}px`;
+    const mapRect = canvas.getBoundingClientRect();
+    const viewportRect = viewport.getBoundingClientRect();
+    const actualScale = mapRect.width / mapWidth;
+    const x = mapRect.left - viewportRect.left + heritagePoint.x * actualScale;
+    const y = mapRect.top - viewportRect.top + heritagePoint.y * actualScale;
+    const width = heritageDialogue.offsetWidth;
+    const height = heritageDialogue.offsetHeight;
+    const above = y - 66 - height >= 8;
+    const left = clamp(x - width / 2, 8, Math.max(8, viewport.clientWidth - width - 8));
+    const top = clamp(above ? y - 66 - height : y + 14, 8, Math.max(8, viewport.clientHeight - height - 72));
+    heritageDialogue.style.left = `${left}px`;
+    heritageDialogue.style.top = `${top}px`;
+    heritageDialogue.dataset.side = above ? "above" : "below";
+    heritageDialogue.style.setProperty("--dialogue-tail", `${clamp(x - left, 16, width - 16)}px`);
+  });
+}
+
+function renderHeritageNarration() {
+  const fragments = experiences[activeNarrative]?.narration;
+  if (!fragments) return;
+  const fragment = fragments[heritageIndex];
+  const location = mapLocations["1894"].find((site) => site.id === fragment.locationId);
+  if (!location) throw new Error(`No se encontró el sitio de la viñeta: ${fragment.locationId}`);
+  heritagePoint = location.coordinates.day;
+  walkerImage.src = AVATARS.pedroPablo.src;
+  walkerImage.alt = "Pedro Pablo";
+  walkerImage.style.left = `${heritagePoint.x}px`;
+  walkerImage.style.top = `${heritagePoint.y}px`;
+  walkerImage.hidden = false;
+  heritageDialogue.hidden = false;
+  document.querySelector("#heritage-dialogue-text").textContent = `“${fragment.text}”`;
+  document.querySelector("#heritage-progress").textContent = `${heritageIndex + 1} / ${fragments.length}`;
+  heritagePrevious.disabled = heritageIndex === 0;
+  heritageNext.disabled = heritageIndex === fragments.length - 1;
+  const scale = getFitScale() * mapState.zoom;
+  mapState.panX = viewport.clientWidth / 2 - heritagePoint.x * scale;
+  mapState.panY = viewport.clientHeight * .7 - heritagePoint.y * scale;
+  applyMapTransform();
+}
+
+heritagePrevious.addEventListener("click", () => {
+  if (heritageIndex === 0) return;
+  heritageIndex -= 1;
+  renderHeritageNarration();
+});
+heritageNext.addEventListener("click", () => {
+  if (heritageIndex >= experiences[activeNarrative].narration.length - 1) return;
+  heritageIndex += 1;
+  renderHeritageNarration();
+});
+canvas.addEventListener("transitionend", positionHeritageDialogue);
+new ResizeObserver(positionHeritageDialogue).observe(heritageDialogue);
 
 function showVenueLamps(experience) {
   const venueIds = new Set(experience.venueFocusIds);
@@ -900,46 +1028,16 @@ function showVenueLamps(experience) {
     }
   }
   nightMap.style.opacity = String(clockConfig.mapTransition.nightOpacity);
-  startWalker(experience.walker);
+  renderHeritageNarration();
 }
 
 function stopWalker() {
-  cancelAnimationFrame(walkerFrame);
-  walkerFrame = null;
+  cancelAnimationFrame(heritageDialogueFrame);
+  heritageDialogueFrame = null;
+  heritageIndex = 0;
+  heritagePoint = null;
+  heritageDialogue.hidden = true;
   walkerImage.hidden = true;
-}
-
-function startWalker({ avatar, route }) {
-  const points = route.map((focusId) => lampGeometryByFocusId.get(focusId)).filter(Boolean).map(({ x, y }) => [x, y]);
-  stopWalker();
-  if (points.length < 2) return;
-  const segments = points.slice(1).map((point, index) => Math.hypot(point[0] - points[index][0], point[1] - points[index][1]));
-  const total = segments.reduce((sum, length) => sum + length, 0);
-  walkerImage.src = AVATARS[avatar].src;
-  walkerImage.hidden = false;
-  let startTime = null;
-
-  const step = (timestamp) => {
-    if (startTime === null) startTime = timestamp;
-    const cycle = ((timestamp - startTime) / 1000) * WALKER_SPEED_MAP_PX_PER_SECOND;
-    const travelled = cycle % (2 * total);
-    let distance = travelled <= total ? travelled : 2 * total - travelled;
-    let index = 0;
-    while (index < segments.length - 1 && distance > segments[index]) {
-      distance -= segments[index];
-      index += 1;
-    }
-    const ratio = segments[index] ? distance / segments[index] : 0;
-    const x = points[index][0] + (points[index + 1][0] - points[index][0]) * ratio;
-    const y = points[index][1] + (points[index + 1][1] - points[index][1]) * ratio;
-    const scale = Number.parseFloat(canvas.style.getPropertyValue("--map-scale")) || 1;
-    const bob = Math.abs(Math.sin(timestamp / 130)) * 2.5 / scale;
-    walkerImage.style.height = `${WALKER_HEIGHT_PX / scale}px`;
-    walkerImage.style.left = `${x}px`;
-    walkerImage.style.top = `${y - bob}px`;
-    walkerFrame = requestAnimationFrame(step);
-  };
-  walkerFrame = requestAnimationFrame(step);
 }
 
 function replaceMapObject(mapObject, url) {
@@ -993,6 +1091,7 @@ function configureFolder(experience) {
   simpleContext.classList.toggle("has-image", Boolean(experience.contextImage));
   document.getElementById("avatar-section").hidden = !experience.avatars;
   document.getElementById("chicha-game").hidden = !experience.chichaJars;
+  if (experience.chichaJars) updateCatchCounter(0, CHICHA_COUNT);
   stopChichas();
   stopWalker();
 
@@ -1033,7 +1132,13 @@ function prefetchMaps(experience) {
   Object.values(experience.maps).forEach((url) => {
     if (!url || prefetchedMaps.has(url)) return;
     prefetchedMaps.add(url);
-    fetch(url).catch(() => prefetchedMaps.delete(url));
+    fetch(url).then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${url}`);
+      return response.arrayBuffer();
+    }).catch((error) => {
+      prefetchedMaps.delete(url);
+      console.warn("No se pudo precargar el mapa. Se volverá a solicitar al entrar.", error);
+    });
   });
 }
 
@@ -1079,6 +1184,7 @@ function closeBibliographicCard() {
 function enterExperience(narrativeId) {
   const experience = experiences[narrativeId];
   if (!experience) return;
+  const loadRun = ++experienceLoadRun;
 
   if (activeNarrative && activeNarrative !== narrativeId) {
     experiences[activeNarrative].onExit?.();
@@ -1090,17 +1196,21 @@ function enterExperience(narrativeId) {
   bibliographicSlide.hidden = true;
   bibliographicSlide.classList.remove("is-entering");
   experiencePanel.hidden = false;
+  mapLoadStatus.hidden = false;
+  mapLoadMessage.textContent = "Cargando el mapa…";
+  mapLoadRetry.hidden = true;
   configureFolder(experience);
   dayMap.style.opacity = "0";
   nightMap.style.opacity = "0";
   locationsLayer.style.visibility = "hidden";
   const mapsReady = experience.hasClock || experience.showVenueLamps ? initializeLightingMaps() : waitForMapSvg(dayMap);
   mapsReady.then(() => {
+    if (loadRun !== experienceLoadRun) return;
     if (experience.chichaJars && activeNarrative === experience.id) {
       stopChichas();
       chichaController = setupChichas(getLoadedSvgDocument(dayMap), dayMap, updateCatchCounter);
       updateCatchCounter(0, chichaController.count);
-      updateChichaScatter();
+      renderChichaToggle();
     }
     renderClock();
     applyMapTransform();
@@ -1108,12 +1218,25 @@ function enterExperience(narrativeId) {
     if (viewMode === "map") dayMap.style.visibility = "";
     locationsLayer.style.visibility = "";
     if (experience.showVenueLamps && activeNarrative === experience.id) showVenueLamps(experience);
+    mapLoadStatus.hidden = true;
+  }).catch((error) => {
+    if (loadRun !== experienceLoadRun) return;
+    console.error("No se pudo preparar el mapa.", error);
+    pauseClock();
+    stopChichas();
+    stopWalker();
+    loadedMapsKey = null;
+    mapLoadMessage.textContent = "No se pudo cargar el mapa. Revisa la conexión y vuelve a intentarlo.";
+    mapLoadRetry.hidden = false;
   });
   experience.onEnter?.();
   requestAnimationFrame(applyMapTransform);
 }
 
 function exitExperience() {
+  experienceLoadRun += 1;
+  pauseClock();
+  clearFlicker();
   stopWalker();
   stopChichas();
   if (activeNarrative) {
@@ -1154,6 +1277,9 @@ bibliographicMapButton.addEventListener("click", () => {
 });
 moreInfoTrigger.addEventListener("click", openInfoOverlay);
 experienceBackButton.addEventListener("click", exitExperience);
+mapLoadRetry.addEventListener("click", () => {
+  if (activeNarrative) enterExperience(activeNarrative);
+});
 infoOverlayBackButton.addEventListener("click", closeInfoOverlay);
 infoArchiveButtons.forEach((button) => {
   button.addEventListener("click", () => openArchiveImage(button));
@@ -1171,15 +1297,8 @@ const avatarCursor = document.querySelector("#avatar-cursor");
 const avatarToggles = Array.from(document.querySelectorAll("[data-avatar]"));
 let activeAvatar = null;
 
-let pointerInsideMap = false;
-
-function updateChichaScatter() {
-  chichaController?.setScatter(Boolean(activeAvatar) && pointerInsideMap);
-}
-
 function setAvatar(key) {
   activeAvatar = key;
-  updateChichaScatter();
   avatarToggles.forEach((toggle) => { toggle.checked = toggle.dataset.avatar === key; });
   viewport.classList.toggle("has-avatar", Boolean(key));
   avatarCursor.hidden = true;
@@ -1195,8 +1314,6 @@ avatarCursor.addEventListener("error", () => setAvatar(null));
 avatarCursor.style.height = `${AVATAR_HEIGHT_PX}px`;
 
 function moveAvatar(event) {
-  pointerInsideMap = true;
-  updateChichaScatter();
   if (!activeAvatar) return;
   avatarCursor.hidden = false;
   const gap = 8;
@@ -1206,21 +1323,15 @@ function moveAvatar(event) {
 viewport.addEventListener("pointermove", moveAvatar);
 viewport.addEventListener("pointerenter", moveAvatar);
 viewport.addEventListener("pointerleave", () => {
-  pointerInsideMap = false;
-  updateChichaScatter();
   avatarCursor.hidden = true;
 });
 
 viewport.addEventListener("click", (event) => {
-  if (!chichaController || !activeAvatar) return;
-  const svgDocument = getLoadedSvgDocument(dayMap);
-  const root = svgDocument.documentElement;
-  const rect = dayMap.getBoundingClientRect();
-  const scaleX = rect.width / dayMap.offsetWidth;
-  const scaleY = rect.height / dayMap.offsetHeight;
-  const point = root.createSVGPoint();
-  point.x = (event.clientX - rect.left) / scaleX;
-  point.y = (event.clientY - rect.top) / scaleY;
-  const local = point.matrixTransform(root.getScreenCTM().inverse());
-  chichaController.tryCatch(local.x, local.y);
+  if (!chichaController || event.button !== 0 || mapState.dragMoved) return;
+  const layer = canvas.querySelector(".chicha-layer");
+  const point = layer.createSVGPoint();
+  point.x = event.clientX;
+  point.y = event.clientY;
+  const local = point.matrixTransform(layer.getScreenCTM().inverse());
+  if (chichaController.tryCatch(local.x, local.y)) void playChichaCatchSound();
 });
